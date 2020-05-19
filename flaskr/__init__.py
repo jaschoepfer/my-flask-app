@@ -1,6 +1,7 @@
 import os
 
 from flask import Flask
+from . import db
 
 FLASK_DEFAULT_CONFIG = {}
 
@@ -22,7 +23,10 @@ def create_app(test_config=None):
     def hello():
         return 'Hello, World!'
 
+    init_app(app)
+
     return app
+
 
 def configure_app(app, default_config, config_pyfile, test_config):
     # load the default configuration
@@ -35,3 +39,7 @@ def configure_app(app, default_config, config_pyfile, test_config):
         # otherwise load the instance config, if it exists
         app.config.from_pyfile(config_pyfile, silent=True)
 
+
+def init_app(app):
+    app.teardown_appcontext(db.close_db)
+    app.cli.add_command(db.init_db_command)
