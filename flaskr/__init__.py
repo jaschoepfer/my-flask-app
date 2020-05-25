@@ -1,31 +1,29 @@
 import os
 
 from flask import Flask
-from . import db
+from . import command
+from . import teardown
 
-FLASK_DEFAULT_CONFIG = {}
+CONFIG_PYFILE = 'config.py'
 
 def create_app(test_config=None):
     # create and configure the app
     app = Flask(__name__, instance_relative_config=True)
 
-    FLASK_DEFAULT_CONFIG = {'SECRET_KEY': 'dev',
-                            'DATABASE': os.path.join(app.instance_path, 'flaskr.sqlite')}
-    FLASK_CONFIG_PYFILE = 'config.py'
+    configure_app(app, make_default_config(app), CONFIG_PYFILE, test_config)
 
-    configure_app(app, FLASK_DEFAULT_CONFIG, FLASK_CONFIG_PYFILE, test_config)
-
-    # ensure the instance folder exists
-    os.makedirs(app.instance_path, exist_ok=True)
-
-    # a simple page that says hello
-    @app.route('/hello')
-    def hello():
-        return 'Hello, World!'
+    create_instance_folder(app)
 
     init_app(app)
 
     return app
+
+
+def make_default_config(app):
+    return {
+        'SECRET_KEY': 'dev',
+        'DATABASE': os.path.join(app.instance_path, 'flaskr.sqlite')
+    }
 
 
 def configure_app(app, default_config, config_pyfile, test_config):
@@ -40,6 +38,15 @@ def configure_app(app, default_config, config_pyfile, test_config):
         app.config.from_pyfile(config_pyfile, silent=True)
 
 
+def create_instance_folder(app):
+    os.makedirs(app.instance_path, exist_ok=True)
+
+
 def init_app(app):
-    app.teardown_appcontext(db.close_db)
-    app.cli.add_command(db.init_db_command)
+    # a simple page that says hello
+    @app.route('/hello')
+    def hello():
+        return 'Hello, World!'
+
+    teardown.add_teardowns(app)
+    command.add_commands(app)
